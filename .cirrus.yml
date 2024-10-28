@@ -6,8 +6,8 @@ yaml:
 # store our secrets here
     bot_token: "ENCRYPTED[!a20e4f0344f49beab507135209956fae7381be15d2066fcd2a241caf2e0ae5da914d777c01cd209608791ba22bb093f5!]"
     chat_id: "ENCRYPTED[!7f41642ba1392c40fdf0b2827bbdc8d8e84d229ecef41ea21cf3b3f59c3fc3eecb2c34897341f332e5ddec514f3ece23!]"
-    magnet_link: "magnet:?xt=urn:btih:6HJ4T4ZXHPYGNTVWMZCUJP33SOS4SKRM&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=Horimiya.S01.2021.JAPANESE.1080p.BluRay.H264.AAC-SWHA"
-    download_path: "./downloads/"
+#    magnet_link: "magnet:?xt=urn:btih:6HJ4T4ZXHPYGNTVWMZCUJP33SOS4SKRM&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=Horimiya.S01.2021.JAPANESE.1080p.BluRay.H264.AAC-SWHA"
+#    download_path: "./downloads/"
 
 # store information about git here
     gmail: prashant33968@gmail.com

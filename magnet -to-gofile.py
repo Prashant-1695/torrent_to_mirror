@@ -4,6 +4,9 @@ import os
 import requests
 from telegram import Bot
 
+MAGNET_LINK = "magnet:?xt=urn:btih:6HJ4T4ZXHPYGNTVWMZCUJP33SOS4SKRM&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=Horimiya.S01.2021.JAPANESE.1080p.BluRay.H264.AAC-SWHA"
+DOWNLOAD_PATH = "./downloads/"  # Folder to save downloaded files
+
 def download_magnet_link(magnet_link, download_path):
     # Create a session and add the torrent
     ses = lt.session()
