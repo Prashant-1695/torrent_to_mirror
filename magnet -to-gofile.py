@@ -70,7 +70,7 @@ def send_to_telegram(bot_token, chat_id, message):
     print('Message sent to Telegram.')
 
 if __name__ == "__main__":
-    config = load_config('config.yml')
+    config = load_config('.cirrus.yml')
     
     magnet_link = config['magnet_link']
     download_path = config['download_path']
