@@ -3,11 +3,6 @@ import time
 import os
 import requests
 from telegram import Bot
-import yaml
-
-def load_config(filename):
-    with open(filename, 'r') as file:
-        return yaml.safe_load(file)
 
 def download_magnet_link(magnet_link, download_path):
     # Create a session and add the torrent
@@ -70,19 +65,12 @@ def send_to_telegram(bot_token, chat_id, message):
     print('Message sent to Telegram.')
 
 if __name__ == "__main__":
-    config = load_config('.cirrus.yml')
+    if not os.path.exists(DOWNLOAD_PATH):
+        os.makedirs(DOWNLOAD_PATH)
     
-    magnet_link = config['magnet_link']
-    download_path = config['download_path']
-    bot_token = config['bot_token']
-    chat_id = config['chat_id']
+    original_folder_name = download_magnet_link(MAGNET_LINK, DOWNLOAD_PATH)
     
-    if not os.path.exists(download_path):
-        os.makedirs(download_path)
-    
-    original_folder_name = download_magnet_link(magnet_link, download_path)
-    
-    downloaded_folder_path = os.path.join(download_path, original_folder_name)
+    downloaded_folder_path = os.path.join(DOWNLOAD_PATH, original_folder_name)
     
     # Upload the folder to Gofile and collect links
     uploaded_links = upload_folder_to_gofile(downloaded_folder_path)
@@ -90,4 +78,4 @@ if __name__ == "__main__":
     # Send links to Telegram
     if uploaded_links:
         message = "Here are the links to the uploaded files:\n" + "\n".join(uploaded_links)
-        send_to_telegram(bot_token, chat_id, message)
+        send_to_telegram(BOT_TOKEN, CHAT_ID, message)
