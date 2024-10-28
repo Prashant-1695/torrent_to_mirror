@@ -1,0 +1,61 @@
+# Base Image: Ubuntu
+FROM ubuntu:22.04
+
+# Working Directory
+WORKDIR /tmp
+
+# Maintainer
+MAINTAINER Prashant-1695 <prashant33968@gmail.com>
+
+# apt update
+RUN apt update
+
+# Install sudo
+RUN apt install apt-utils sudo -y
+
+# tzdata
+ENV TZ Asia/Kolkata
+
+RUN \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata \
+&& ln -sf /usr/share/zoneinfo/$TZ /etc/localtime \
+&& apt-get install -y tzdata \
+&& dpkg-reconfigure --frontend noninteractive tzdata
+
+# set locales 
+RUN apt-get install -y locales \
+	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+ENV LANG en_US.utf8
+
+# Install git and ssh
+RUN sudo apt install git ssh -y
+
+# Configure git
+ENV GIT_USERNAME Prashant-1695
+ENV GIT_EMAIL <prashant33968@gmail.com>
+RUN \
+    git config --global user.name $GIT_USERNAME \
+&&  git config --global user.email $GIT_EMAIL
+
+# Filesystems
+RUN sudo apt-get install -y \ 
+    python3 \
+    python3-libtorrent \
+    python3-pip && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+RUN sudo pip install -y \
+    requests \
+    python-telegram-bot \
+    PyYAML
+
+RUN mkdir /var/run/sshd
+
+RUN echo 'root:root' | chpasswd
+
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+# Run bash
+CMD ["bash"]

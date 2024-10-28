@@ -1,0 +1,24 @@
+env: # Environment variables to pass to all tasks
+    CIRRUS_CLONE_DEPTH: 1 # No need to clone with the whole history
+    CIRRUS_WORKING_DIR: "/tmp/ci" # Where torrent files download
+
+# store our secrets here
+    bot_token: "ENCRYPTED[!a20e4f0344f49beab507135209956fae7381be15d2066fcd2a241caf2e0ae5da914d777c01cd209608791ba22bb093f5!]"
+    chat_id: "ENCRYPTED[!7f41642ba1392c40fdf0b2827bbdc8d8e84d229ecef41ea21cf3b3f59c3fc3eecb2c34897341f332e5ddec514f3ece23!]"
+    magnet_link: "YOUR_MAGNET_LINK_HERE"
+    download_path: "./downloads/"
+
+# store information about git here
+    gmail: prashant33968@gmail.com
+    
+task:
+    name: torrent-to-gofiles
+    timeout_in: 120m
+    container:
+      dockerfile: nexgang
+      cpu: 8
+      memory: 32G
+      stateful: true
+      greedy: true
+    py_script:
+      - python3 *.py
