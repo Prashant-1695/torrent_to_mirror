@@ -44,7 +44,7 @@ RUN sudo apt-get install -y \
     python3-pip && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
-RUN sudo pip install -y \
+RUN sudo pip install \
     requests \
     python-telegram-bot \
     PyYAML
