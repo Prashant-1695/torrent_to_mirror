@@ -110,7 +110,7 @@ def process_downloaded_files(downloaded_folder_path):
     # Iterate through all files and folders in the downloaded directory
     for item in os.listdir(downloaded_folder_path):
         item_path = os.path.join(downloaded_folder_path, item)
-        
+
         if os.path.isdir(item_path):
             # Zip and upload the folder
             zip_file_path = zip_folder(item_path, magnet_link)
@@ -134,7 +134,10 @@ def process_downloaded_files(downloaded_folder_path):
             if not item.endswith(('.zip', '.7z')):
                 send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path}")
                 upload_links = upload_file(item_path)
-                if not upload_links:
+                if upload_links:
+                    combined_links = "\n".join(upload_links)
+                    send_to_telegram(bot_id, chat_id, f"File upload completed! Links:\n{combined_links}")
+                else:
                     send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
                     buzzheavier_links = upload_files_to_buzzheavier(item_path)
                     if buzzheavier_links:
