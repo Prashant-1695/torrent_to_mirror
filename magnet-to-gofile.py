@@ -66,8 +66,8 @@ def send_to_telegram(bot_id, chat_id, message):
         print(f'Failed to send message: {response.status_code}')
 
 if __name__ == "__main__":
-    bot_id = "1713012266:AAHEMmHMyZ-dxqMU4hQvEv_FHFJBP3UbDro"  # Set in .cirrus.yml
-    chat_id = "-1001659048493"  # Set in .cirrus.yml
+    bot_id = os.environ.get('BOT_ID')  # Set in .cirrus.yml
+    chat_id = os.environ.get('CHAT_ID')  # Set in .cirrus.yml
 
     magnet_link = "magnet:?xt=urn:btih:IZAXKUIE4T5DO6RAYDJ2BIWZDBSZNPOB&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=%5BEMBER%5D%20My%20Hero%20Academia%20%282024%29%20%28Season%207%29%20%5B1080p%5D%20%5BDual%20Audio%20HEVC%20WEBRip%5D%20%28Boku%20no%20Hero%20Academia%207th%20Season%29%20%28Batch%29"  # Replace with your actual magnet link
     download_path = "./downloads/"  # Folder to save downloaded files
