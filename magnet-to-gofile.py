@@ -109,7 +109,7 @@ if __name__ == "__main__":
         os.makedirs(download_path)
 
     # Download from SourceForge (Replace with actual SourceForge file URL)
-    sourceforge_url = "https://sourceforge.net/projects/example/files/example_file.zip/download"  # Example URL
+    sourceforge_url = "https://sourceforge.net/projects/xenxynon-roms/files/DerpFest-15-Community-Stable-Spacewar-20241026.zip/download"  # Example URL
     downloaded_file_path = download_file_from_sourceforge(sourceforge_url, download_path)
 
     # Download magnet link
