@@ -2,6 +2,19 @@ import os
 import time
 import requests
 import libtorrent as lt
+import subprocess
+
+def send_to_telegram(bot_id, chat_id, message):
+    url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        print('Message sent to Telegram.')
+    else:
+        print(f'Failed to send message: {response.status_code}')
 
 def download_magnet(magnet_link, download_path):
     ses = lt.session()
@@ -21,6 +34,7 @@ def download_magnet(magnet_link, download_path):
     print("Metadata downloaded, starting to download files...")
     send_to_telegram(bot_id, chat_id, "Starting download...")
 
+    start_time = time.time()  # Start timing the download
     while handle.status().state != lt.torrent_status.seeding:
         s = handle.status()
         print(f'Downloaded: {s.progress * 100:.2f}% - '
@@ -28,48 +42,47 @@ def download_magnet(magnet_link, download_path):
               f'Upload rate: {s.upload_rate / 1000:.1f} kB/s')
         time.sleep(1)
 
+    elapsed_time = time.time() - start_time  # Calculate elapsed time
     print("Download completed!")
-    send_to_telegram(bot_id, chat_id, "Download completed!")
+    send_to_telegram(bot_id, chat_id, f"Download completed in {elapsed_time:.2f} seconds!")
     return download_path
 
-def upload_files_to_gofile(folder_path):
+def zip_folder(folder_path):
+    zip_file_path = f"{folder_path}.7z"
+    subprocess.run(['7z', 'a', zip_file_path, folder_path])
+    return zip_file_path
+
+def upload_files_to_gofile(file_path):
     url = "https://store1.gofile.io/uploadFile"
+
     links = []
+    if os.path.isdir(file_path):
+        # If it's a directory, zip it first
+        zip_file_path = zip_folder(file_path)
+        file_path = zip_file_path  # Update file_path to the zip file path
 
-    # Collect all files in the folder
-    for root, _, filenames in os.walk(folder_path):
-        for filename in filenames:
-            file_path = os.path.join(root, filename)
-            with open(file_path, 'rb') as file:
-                response = requests.post(url, files={'file': file})
-                if response.status_code == 200:
-                    response_json = response.json()
-                    if response_json['status'] == 'ok':
-                        links.append(response_json['data']['downloadPage'])
-                    else:
-                        print(f'Upload failed for {filename}: {response_json["message"]}')
-                else:
-                    print(f'Error uploading {filename}: {response.status_code} - {response.text}')
+    # Upload the file (or zipped folder)
+    start_time = time.time()  # Start timing the upload
+    with open(file_path, 'rb') as file:
+        response = requests.post(url, files={'file': file})
+        if response.status_code == 200:
+            response_json = response.json()
+            if response_json['status'] == 'ok':
+                links.append(response_json['data']['downloadPage'])
+            else:
+                print(f'Upload failed for {file_path}: {response_json["message"]}')
+        else:
+            print(f'Error uploading {file_path}: {response.status_code} - {response.text}')
 
+    elapsed_time = time.time() - start_time  # Calculate elapsed time
+    print(f"Upload completed in {elapsed_time:.2f} seconds!")
     return links
 
-def send_to_telegram(bot_id, chat_id, message):
-    url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
-    payload = {
-        'chat_id': chat_id,
-        'text': message
-    }
-    response = requests.post(url, json=payload)
-    if response.status_code == 200:
-        print('Message sent to Telegram.')
-    else:
-        print(f'Failed to send message: {response.status_code}')
-
 if __name__ == "__main__":
-    bot_id = os.environ.get('BOT_ID')  # Set in .cirrus.yml
-    chat_id = os.environ.get('CHAT_ID')  # Set in .cirrus.yml
+    bot_id = os.environ.get('BOT_ID')  # Set in environment
+    chat_id = os.environ.get('CHAT_ID')  # Set in environment
 
-    magnet_link = "magnet:?xt=urn:btih:IZAXKUIE4T5DO6RAYDJ2BIWZDBSZNPOB&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=%5BEMBER%5D%20My%20Hero%20Academia%20%282024%29%20%28Season%207%29%20%5B1080p%5D%20%5BDual%20Audio%20HEVC%20WEBRip%5D%20%28Boku%20no%20Hero%20Academia%207th%20Season%29%20%28Batch%29"  # Replace with your actual magnet link
+    magnet_link = "magnet:?xt=urn:btih:EAMZLAVEENPOAUVO4EGMI2WSATLTZTIQ&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.gbitt.info%3A443%2Fannounce&tr=https%3A%2F%2Ftracker.loligirl.cn%3A443%2Fannounce&tr=http%3A%2F%2Ftracker.files.fm%3A6969%2Fannounce&dn=%5BLonelyDildo%5D%20Magical%E2%98%85Taruruuto-kun%20TV%20%281990%29%20-%2064-70"  # Replace with your actual magnet link
     download_path = "./downloads/"  # Folder to save downloaded files
 
     if not os.path.exists(download_path):
@@ -77,7 +90,7 @@ if __name__ == "__main__":
 
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Upload the downloaded folder to GoFile
+    # Upload the downloaded folder (zipped if necessary) to GoFile
     send_to_telegram(bot_id, chat_id, "Uploading files...")
     upload_links = upload_files_to_gofile(downloaded_folder_path)
 
