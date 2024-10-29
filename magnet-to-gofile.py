@@ -52,20 +52,22 @@ def zip_folder(folder_path):
     folder_name = os.path.basename(os.path.normpath(folder_path))
     # Create the .7z file path
     zip_file_path = os.path.join(os.path.dirname(folder_path), f"{folder_name}.7z")
+
+    send_to_telegram(bot_id, chat_id, "Zipping the folder...")  # Notify before zipping
+    start_time = time.time()  # Start timing the zipping process
+
     # Create the .7z archive
     subprocess.run(['7z', 'a', zip_file_path, folder_path])
+
+    elapsed_time = time.time() - start_time  # Calculate elapsed time
+    send_to_telegram(bot_id, chat_id, f"Zipping completed in {elapsed_time:.2f} seconds!")  # Notify after zipping
     return zip_file_path
 
 def upload_files_to_gofile(file_path):
     url = "https://store1.gofile.io/uploadFile"
     links = []
 
-    if os.path.isdir(file_path):
-        # If it's a directory, zip it first
-        zip_file_path = zip_folder(file_path)
-        file_path = zip_file_path  # Update file_path to the zip file path
-
-    # Upload the file (or zipped folder)
+    # Upload the file (the zipped folder)
     start_time = time.time()  # Start timing the upload
     with open(file_path, 'rb') as file:
         response = requests.post(url, files={'file': file})
@@ -79,7 +81,7 @@ def upload_files_to_gofile(file_path):
             print(f'Error uploading {file_path}: {response.status_code} - {response.text}')
 
     elapsed_time = time.time() - start_time  # Calculate elapsed time
-    print(f"Upload completed in {elapsed_time:.2f} seconds!")
+    send_to_telegram(bot_id, chat_id, f"Upload completed in {elapsed_time:.2f} seconds!")  # Notify after upload
     return links
 
 if __name__ == "__main__":
@@ -94,9 +96,12 @@ if __name__ == "__main__":
 
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Upload the downloaded folder (zipped if necessary) to GoFile
-    send_to_telegram(bot_id, chat_id, "Uploading files...")
-    upload_links = upload_files_to_gofile(downloaded_folder_path)
+    # Zip the downloaded folder
+    zip_file_path = zip_folder(downloaded_folder_path)
+
+    # Upload the zipped folder to GoFile
+    send_to_telegram(bot_id, chat_id, "Uploading the zipped folder...")
+    upload_links = upload_files_to_gofile(zip_file_path)
 
     if upload_links:
         combined_links = "\n".join(upload_links)
