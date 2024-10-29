@@ -82,7 +82,7 @@ if __name__ == "__main__":
     bot_id = os.environ.get('BOT_ID')  # Set in environment
     chat_id = os.environ.get('CHAT_ID')  # Set in environment
 
-    magnet_link = "magnet:?xt=urn:btih:EAMZLAVEENPOAUVO4EGMI2WSATLTZTIQ&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.gbitt.info%3A443%2Fannounce&tr=https%3A%2F%2Ftracker.loligirl.cn%3A443%2Fannounce&tr=http%3A%2F%2Ftracker.files.fm%3A6969%2Fannounce&dn=%5BLonelyDildo%5D%20Magical%E2%98%85Taruruuto-kun%20TV%20%281990%29%20-%2064-70"  # Replace with your actual magnet link
+    magnet_link = "magnet:?xt=urn:btih:XS3OX7DC2XSCJQTPCEUFVJ3CRTHGSF2B&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=Kaiju.No.8.S01.2024.JAPANESE.1080p.BluRay.H264.AAC-SWHA"  # Replace with your actual magnet link
     download_path = "./downloads/"  # Folder to save downloaded files
 
     if not os.path.exists(download_path):
