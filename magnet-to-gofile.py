@@ -48,6 +48,11 @@ def download_magnet(magnet_link, download_path):
     return download_path
 
 def zip_folder(folder_path, magnet_link):
+    # Check if the provided path is a directory
+    if not os.path.isdir(folder_path):
+        send_to_telegram(bot_id, chat_id, f"Skipping zipping. The path {folder_path} is not a directory.")
+        return None
+
     folder_name = magnet_link.split('dn=')[1].split('&')[0]
     folder_name = requests.utils.unquote(folder_name)
     zip_file_path = os.path.join(os.path.dirname(folder_path), f"{folder_name}.7z")
@@ -61,7 +66,7 @@ def zip_folder(folder_path, magnet_link):
     send_to_telegram(bot_id, chat_id, f"Zipping completed in {elapsed_time:.2f} seconds!")
     return zip_file_path
 
-def upload_files_to_gofile(file_path):
+def upload_file(file_path):
     url = "https://store1.gofile.io/uploadFile"
     links = []
 
@@ -101,6 +106,43 @@ def upload_files_to_buzzheavier(file_path):
     send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed in {elapsed_time:.2f} seconds!")
     return links
 
+def process_downloaded_files(downloaded_folder_path):
+    # Iterate through all files and folders in the downloaded directory
+    for item in os.listdir(downloaded_folder_path):
+        item_path = os.path.join(downloaded_folder_path, item)
+        
+        if os.path.isdir(item_path):
+            # Zip and upload the folder
+            zip_file_path = zip_folder(item_path, magnet_link)
+            if zip_file_path:  # Only upload if zipping was successful
+                send_to_telegram(bot_id, chat_id, "Uploading the zipped folder to GoFile...")
+                upload_links = upload_file(zip_file_path)
+                # If GoFile upload fails, try BuzzHeavier
+                if not upload_links:
+                    send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
+                    buzzheavier_links = upload_files_to_buzzheavier(zip_file_path)
+                    if buzzheavier_links:
+                        combined_links = "\n".join(buzzheavier_links)
+                        send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed! Links:\n{combined_links}")
+                    else:
+                        send_to_telegram(bot_id, chat_id, "Upload failed on both platforms.")
+                else:
+                    combined_links = "\n".join(upload_links)
+                    send_to_telegram(bot_id, chat_id, f"Upload completed to GoFile! Links:\n{combined_links}")
+        else:
+            # If it's a file, upload it directly
+            if not item.endswith(('.zip', '.7z')):
+                send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path}")
+                upload_links = upload_file(item_path)
+                if not upload_links:
+                    send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
+                    buzzheavier_links = upload_files_to_buzzheavier(item_path)
+                    if buzzheavier_links:
+                        combined_links = "\n".join(buzzheavier_links)
+                        send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed for file! Links:\n{combined_links}")
+                    else:
+                        send_to_telegram(bot_id, chat_id, f"Upload failed for file: {item_path} on both platforms.")
+
 if __name__ == "__main__":
     bot_id = os.environ.get('BOT_ID')
     chat_id = os.environ.get('CHAT_ID')
@@ -116,22 +158,5 @@ if __name__ == "__main__":
     # Download magnet link
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Zip the downloaded folder
-    zip_file_path = zip_folder(downloaded_folder_path, magnet_link)
-
-    # Upload the zipped folder to GoFile first
-    send_to_telegram(bot_id, chat_id, "Uploading the zipped folder to GoFile...")
-    upload_links = upload_files_to_gofile(zip_file_path)
-
-    # If GoFile upload fails, try BuzzHeavier
-    if not upload_links:
-        send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
-        buzzheavier_links = upload_files_to_buzzheavier(zip_file_path)
-        if buzzheavier_links:
-            combined_links = "\n".join(buzzheavier_links)
-            send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed! Links:\n{combined_links}")
-        else:
-            send_to_telegram(bot_id, chat_id, "Upload failed on both platforms.")
-    else:
-        combined_links = "\n".join(upload_links)
-        send_to_telegram(bot_id, chat_id, f"Upload completed to GoFile! Links:\n{combined_links}")
+    # Process downloaded files and folders
+    process_downloaded_files(downloaded_folder_path)
