@@ -40,11 +40,14 @@ def upload_folder_to_gofile(folder_path):
     for root, _, filenames in os.walk(folder_path):
         for filename in filenames:
             file_path = os.path.join(root, filename)
-            with open(file_path, 'rb') as file:
-                files.append(('file', (filename, file)))
+            files.append(('file', (filename, open(file_path, 'rb'))))  # Open file here
 
     # Upload all files to GoFile
     response = requests.post(url, files=files)
+    
+    # Close the file objects after the upload
+    for _, file_tuple in files:
+        file_tuple[1].close()
 
     if response.status_code == 200:
         response_json = response.json()
