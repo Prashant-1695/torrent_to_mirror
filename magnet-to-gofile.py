@@ -90,12 +90,16 @@ def download_file_from_sourceforge(url, download_path):
     if 'content-disposition' in response.headers:
         content_disposition = response.headers['content-disposition']
         if 'filename=' in content_disposition:
-            filename = content_disposition.split('filename=')[1].strip('"')
-    
+            filename = content_disposition.split('filename=')[1].strip('"').replace("'", "")  # Remove quotes
+
     # Fallback to the last part of the URL if filename extraction fails
     if filename is None:
         filename = url.split('/')[-1]
     
+    # Clean up the filename to ensure no invalid characters
+    filename = requests.utils.unquote(filename)
+    filename = filename.replace(" ", "_")  # Replace spaces with underscores
+
     full_path = os.path.join(download_path, filename)
 
     send_to_telegram(bot_id, chat_id, f"Downloading file from SourceForge: {url}")
@@ -137,7 +141,7 @@ if __name__ == "__main__":
         else:
             send_to_telegram(bot_id, chat_id, "Upload failed or no files found.")
 
-    if magnet_link:
+    elif magnet_link:
         downloaded_folder_path = download_magnet(magnet_link, download_path)
 
         # Zip the downloaded folder
