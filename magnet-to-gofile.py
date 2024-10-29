@@ -50,7 +50,7 @@ def upload_to_gofile(file_path):
     else:
         print(f'Error: {response.status_code} - {response.text}')
         return None
-
+        
 # Function to send message via Telegram
 def send_to_telegram(bot_id, chat_id, message):
     url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     bot_id = os.environ.get('BOT_ID')  # Set in .cirrus.yml
     chat_id = os.environ.get('CHAT_ID')  # Set in .cirrus.yml
 
-    magnet_link = "magnet:?xt=urn:btih:OGKQEU6XRYD7PIPDS3Y5OCDLVA4IZNFI&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=%5BJOHNTiTOR%5D%20Elfen%20Lied%20S01%20v3%20%28BD%201080p%20HEVC%20Opus%29%20%5BDual-Audio%5D"    
+    magnet_link = "magnet:?xt=urn:btih:6HJ4T4ZXHPYGNTVWMZCUJP33SOS4SKRM&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=Horimiya.S01.2021.JAPANESE.1080p.BluRay.H264.AAC-SWHA"    
     download_path = "./downloads/"  # Folder to save downloaded files
 
     # Create download directory if it doesn't exist
@@ -80,9 +80,14 @@ if __name__ == "__main__":
     # Download the folder or file from the magnet link
     original_name = download_magnet(magnet_link, download_path)
 
-    # Upload the downloaded file to GoFile
-    file_path = os.path.join(download_path, original_name)
-    upload_link = upload_to_gofile(file_path)
+    # Upload each file in the downloaded folder to GoFile
+    upload_links = []
+    for root, dirs, files in os.walk(download_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            upload_link = upload_to_gofile(file_path)
+            if upload_link:
+                upload_links.append(upload_link)
 
     # Send upload link to Telegram
     if upload_link:
