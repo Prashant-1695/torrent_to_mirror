@@ -113,7 +113,7 @@ if __name__ == "__main__":
     chat_id = os.environ.get('CHAT_ID')
 
     # Example magnet link (Replace with actual magnet link if needed)
-    magnet_link = "YOUR_MAGNET_LINK"
+    magnet_link = "YOUR_MAGNET_LINK"  # Optional, can be left as None
     
     # Set download path
     download_path = "./downloads/"
@@ -126,8 +126,18 @@ if __name__ == "__main__":
     # Check for SourceForge URL first
     if sourceforge_url:
         downloaded_file_path = download_file_from_sourceforge(sourceforge_url, download_path)
-        # Skip calling the magnet link if SourceForge download is successful
-    elif magnet_link:
+        
+        # After downloading, immediately upload to GoFile
+        send_to_telegram(bot_id, chat_id, "Uploading the downloaded file to GoFile...")
+        upload_links = upload_files_to_gofile(downloaded_file_path)
+
+        if upload_links:
+            combined_links = "\n".join(upload_links)
+            send_to_telegram(bot_id, chat_id, f"Upload completed! Links:\n{combined_links}")
+        else:
+            send_to_telegram(bot_id, chat_id, "Upload failed or no files found.")
+
+    if magnet_link:
         downloaded_folder_path = download_magnet(magnet_link, download_path)
 
         # Zip the downloaded folder
