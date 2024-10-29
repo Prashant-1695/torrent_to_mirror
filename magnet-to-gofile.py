@@ -112,7 +112,7 @@ if __name__ == "__main__":
     bot_id = os.environ.get('BOT_ID')
     chat_id = os.environ.get('CHAT_ID')
 
-    # Example magnet link (Replace with actual magnet link)
+    # Example magnet link (Replace with actual magnet link if needed)
     magnet_link = "YOUR_MAGNET_LINK"
     
     # Set download path
@@ -122,10 +122,12 @@ if __name__ == "__main__":
 
     # Conditional download handling
     sourceforge_url = "https://sourceforge.net/projects/xenxynon-roms/files/DerpFest-15-Community-Stable-Spacewar-20241026.zip/download"  # Example URL
+
+    # Check for SourceForge URL first
     if sourceforge_url:
         downloaded_file_path = download_file_from_sourceforge(sourceforge_url, download_path)
-
-    if magnet_link:
+        # Skip calling the magnet link if SourceForge download is successful
+    elif magnet_link:
         downloaded_folder_path = download_magnet(magnet_link, download_path)
 
         # Zip the downloaded folder
