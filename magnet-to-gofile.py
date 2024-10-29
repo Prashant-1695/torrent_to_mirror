@@ -32,33 +32,26 @@ def download_magnet(magnet_link, download_path):
     send_to_telegram(bot_id, chat_id, "Download completed!")
     return download_path
 
-def upload_folder_to_gofile(folder_path):
+def upload_files_to_gofile(folder_path):
     url = "https://store1.gofile.io/uploadFile"
-    files = []
-    
+    links = []
+
     # Collect all files in the folder
     for root, _, filenames in os.walk(folder_path):
         for filename in filenames:
             file_path = os.path.join(root, filename)
-            files.append(('file', (filename, open(file_path, 'rb'))))  # Open file here
+            with open(file_path, 'rb') as file:
+                response = requests.post(url, files={'file': file})
+                if response.status_code == 200:
+                    response_json = response.json()
+                    if response_json['status'] == 'ok':
+                        links.append(response_json['data']['downloadPage'])
+                    else:
+                        print(f'Upload failed for {filename}: {response_json["message"]}')
+                else:
+                    print(f'Error uploading {filename}: {response.status_code} - {response.text}')
 
-    # Upload all files to GoFile
-    response = requests.post(url, files=files)
-    
-    # Close the file objects after the upload
-    for _, file_tuple in files:
-        file_tuple[1].close()
-
-    if response.status_code == 200:
-        response_json = response.json()
-        if response_json['status'] == 'ok':
-            return response_json['data']['downloadPage']
-        else:
-            print(f'Upload failed: {response_json["message"]}')
-            return None
-    else:
-        print(f'Error: {response.status_code} - {response.text}')
-        return None
+    return links
 
 def send_to_telegram(bot_id, chat_id, message):
     url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
@@ -73,8 +66,8 @@ def send_to_telegram(bot_id, chat_id, message):
         print(f'Failed to send message: {response.status_code}')
 
 if __name__ == "__main__":
-    bot_id = os.environ.get('BOT_ID')  # Set in .cirrus.yml
-    chat_id = os.environ.get('CHAT_ID')  # Set in .cirrus.yml
+    bot_id = "1713012266:AAHEMmHMyZ-dxqMU4hQvEv_FHFJBP3UbDro"  # Set in .cirrus.yml
+    chat_id = "-1001659048493"  # Set in .cirrus.yml
 
     magnet_link = "magnet:?xt=urn:btih:IZAXKUIE4T5DO6RAYDJ2BIWZDBSZNPOB&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=%5BEMBER%5D%20My%20Hero%20Academia%20%282024%29%20%28Season%207%29%20%5B1080p%5D%20%5BDual%20Audio%20HEVC%20WEBRip%5D%20%28Boku%20no%20Hero%20Academia%207th%20Season%29%20%28Batch%29"  # Replace with your actual magnet link
     download_path = "./downloads/"  # Folder to save downloaded files
@@ -86,9 +79,10 @@ if __name__ == "__main__":
 
     # Upload the downloaded folder to GoFile
     send_to_telegram(bot_id, chat_id, "Uploading files...")
-    upload_link = upload_folder_to_gofile(downloaded_folder_path)
+    upload_links = upload_files_to_gofile(downloaded_folder_path)
 
-    if upload_link:
-        send_to_telegram(bot_id, chat_id, f"Upload completed! Download link: {upload_link}")
+    if upload_links:
+        combined_links = "\n".join(upload_links)
+        send_to_telegram(bot_id, chat_id, f"Upload completed! Links:\n{combined_links}")
     else:
-        send_to_telegram(bot_id, chat_id, "Upload failed.")
+        send_to_telegram(bot_id, chat_id, "Upload failed or no files found.")
