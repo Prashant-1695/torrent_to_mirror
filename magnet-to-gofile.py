@@ -47,9 +47,10 @@ def download_magnet(magnet_link, download_path):
     send_to_telegram(bot_id, chat_id, f"Download completed in {elapsed_time:.2f} seconds!")
     return download_path
 
-def zip_folder(folder_path):
-    # Get the original folder name
-    folder_name = os.path.basename(os.path.normpath(folder_path))
+def zip_folder(folder_path, magnet_link):
+    # Extract the desired folder name from the magnet link
+    folder_name = magnet_link.split('dn=')[1].split('&')[0]  # Get name from magnet link
+    folder_name = requests.utils.unquote(folder_name)  # Decode URL-encoded characters
     # Create the .7z file path
     zip_file_path = os.path.join(os.path.dirname(folder_path), f"{folder_name}.7z")
 
@@ -96,8 +97,8 @@ if __name__ == "__main__":
 
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Zip the downloaded folder
-    zip_file_path = zip_folder(downloaded_folder_path)
+    # Zip the downloaded folder using the magnet link for naming
+    zip_file_path = zip_folder(downloaded_folder_path, magnet_link)
 
     # Upload the zipped folder to GoFile
     send_to_telegram(bot_id, chat_id, "Uploading the zipped folder...")
