@@ -75,15 +75,31 @@ def upload_file_to_buzzheavier(file_path):
 
 def upload_file_to_pixeldrain(file_path):
     url = "https://pixeldrain.com/api/file"
-    files = {'file': open(file_path, 'rb')}
-    response = requests.post(url, files=files)
-    links = []
+    
+    # Use a context manager to ensure the file is properly closed after uploading
+    with open(file_path, 'rb') as file:
+        try:
+            # Set a timeout for the request (e.g., 10 seconds)
+            response = requests.post(url, files={'file': file}, timeout=10)
+            links = []
 
-    if response.status_code == 200:
-        response_json = response.json()
-        links.append(response_json['id'])  # Link to the uploaded file
-    else:
-        print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
+            if response.status_code == 200:
+                response_json = response.json()
+                links.append(response_json['id'])  # Link to the uploaded file
+            else:
+                print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
+
+        except requests.exceptions.Timeout:
+            print(f'Timeout occurred while uploading {file_path} to Pixeldrain.')
+            send_to_telegram(bot_id, chat_id, f'Timeout occurred while uploading {file_path} to Pixeldrain.')
+
+        except requests.exceptions.SSLError as ssl_error:
+            print(f'SSL Error occurred while uploading {file_path} to Pixeldrain: {ssl_error}')
+            send_to_telegram(bot_id, chat_id, f'SSL Error occurred while uploading {file_path} to Pixeldrain: {ssl_error}')
+
+        except Exception as e:
+            print(f'An unexpected error occurred while uploading {file_path} to Pixeldrain: {e}')
+            send_to_telegram(bot_id, chat_id, f'An unexpected error occurred while uploading {file_path} to Pixeldrain: {e}')
 
     return links
 
