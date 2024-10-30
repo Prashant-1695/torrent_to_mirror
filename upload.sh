@@ -24,16 +24,40 @@ upload_file_to_gofile() {
 upload_file_to_buzzheavier() {
     local file="$1"
     local response
-    response=$(curl -F "file=@${file}" https://w.buzzheavier.com/t/)
-    echo "$response" | grep -o '"url":"[^"]*' | cut -d'"' -f4
+
+    # Using curl to upload the file to BuzzHeavier
+    response=$(curl -# -T "${file}" "https://w.buzzheavier.com/t/" | cat)
+
+    # Extracting the URL from the response
+    local download_link=$(echo "$response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+    
+    if [ "$download_link" != "" ]; then
+        echo "$download_link"
+    else
+        echo "Error: Failed to retrieve the download link from BuzzHeavier."
+        echo "Response: $response"
+        exit 1
+    fi
 }
 
 upload_file_to_pixeldrain() {
     local file="$1"
     local token="$2"
     local response
+
+    # Perform the upload
     response=$(curl -X POST -H "Authorization: Bearer ${token}" -F "file=@${file}" https://pixeldrain.com/api/file)
-    echo "$response" | jq -r '.id'
+
+    # Extract the URL from the response
+    local download_link=$(echo "$response" | jq -r '.id')
+    
+    if [ "$download_link" != "null" ]; then
+        echo "https://pixeldrain.com/u/$download_link"  # Construct the download link
+    else
+        echo "Error: Failed to retrieve the download link from Pixeldrain."
+        echo "Response: $response"
+        exit 1
+    fi
 }
 
 case $uploader in
