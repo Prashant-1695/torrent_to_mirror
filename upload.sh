@@ -47,6 +47,9 @@ upload_file_to_pixeldrain() {
 
     # Perform the upload to Pixeldrain using the API key
     response=$(curl -T "${file}" -u ":${token}" "https://pixeldrain.com/api/file")
+
+    # Extract the URL from the response using jq
+    local download_link=$(echo "$response" | jq -r '.id')
 }
 
 case $uploader in
