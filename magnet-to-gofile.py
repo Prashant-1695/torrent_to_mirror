@@ -119,8 +119,8 @@ if __name__ == "__main__":
     pixeldrain_api_key = os.environ.get('PIXELDRAIN_API_KEY')
 
     # Example GitHub repository and file path
-    github_repo = "username/repo"  # Replace with the actual GitHub username/repo
-    file_path = "path/to/magnet_link.txt"  # Replace with the actual path to the magnet_link.txt file
+    github_repo = "Prashant-1695/magnet_url"  # Replace with the actual GitHub username/repo
+    file_path = "magnet_link.txt"  # Replace with the actual path to the magnet_link.txt file
 
     # Get the magnet link from the GitHub repository
     magnet_link = get_magnet_link_from_github(github_repo, file_path)
