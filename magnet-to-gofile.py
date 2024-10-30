@@ -48,7 +48,6 @@ def download_magnet(magnet_link, download_path):
     return download_path
 
 def zip_folder(folder_path, magnet_link):
-    # Check if the provided path is a directory
     if not os.path.isdir(folder_path):
         send_to_telegram(bot_id, chat_id, f"Skipping zipping. The path {folder_path} is not a directory.")
         return None
@@ -66,85 +65,84 @@ def zip_folder(folder_path, magnet_link):
     send_to_telegram(bot_id, chat_id, f"Zipping completed in {elapsed_time:.2f} seconds!")
     return zip_file_path
 
-def upload_file(file_path):
+def upload_file_to_gofile(file_path):
     url = "https://store1.gofile.io/uploadFile"
+    return upload_file(file_path, url, 'gofile')
+
+def upload_file_to_buzzheavier(file_path):
+    url = "https://buzzheavier.com/upload"  # Replace with the actual upload URL
+    return upload_file(file_path, url, 'buzzheavier')
+
+def upload_file_to_pixeldrain(file_path):
+    url = "https://pixeldrain.com/api/file"
+    files = {'file': open(file_path, 'rb')}
+    response = requests.post(url, files=files)
     links = []
 
+    if response.status_code == 200:
+        response_json = response.json()
+        links.append(response_json['id'])  # Link to the uploaded file
+    else:
+        print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
+
+    return links
+
+def upload_file(file_path, url, platform):
+    links = []
     start_time = time.time()
     with open(file_path, 'rb') as file:
         response = requests.post(url, files={'file': file})
         if response.status_code == 200:
             response_json = response.json()
             if response_json['status'] == 'ok':
-                links.append(response_json['data']['downloadPage'])
+                if platform == 'gofile':
+                    links.append(response_json['data']['downloadPage'])
+                elif platform == 'buzzheavier':
+                    links.append(response_json['downloadLink'])  # Update based on actual response structure
+                print(f'Upload successful to {platform}: {links}')
             else:
-                print(f'Upload failed for {file_path}: {response_json["message"]}')
+                print(f'Upload failed for {file_path} to {platform}: {response_json["message"]}')
         else:
-            print(f'Error uploading {file_path}: {response.status_code} - {response.text}')
+            print(f'Error uploading {file_path} to {platform}: {response.status_code} - {response.text}')
 
     elapsed_time = time.time() - start_time
-    send_to_telegram(bot_id, chat_id, f"GoFile upload completed in {elapsed_time:.2f} seconds!")
+    send_to_telegram(bot_id, chat_id, f"{platform.capitalize()} upload completed in {elapsed_time:.2f} seconds!")
     return links
 
-def upload_files_to_buzzheavier(file_path):
-    url = "https://buzzheavier.com/upload"  # Replace with the actual upload URL
-    links = []
-
-    start_time = time.time()
-    with open(file_path, 'rb') as file:
-        response = requests.post(url, files={'file': file})
-        if response.status_code == 200:
-            response_json = response.json()
-            if response_json.get('success'):
-                links.append(response_json['downloadLink'])  # Adjust based on actual response structure
-            else:
-                print(f'Upload failed for {file_path}: {response_json.get("message")}')
-        else:
-            print(f'Error uploading {file_path} to BuzzHeavier: {response.status_code} - {response.text}')
-
-    elapsed_time = time.time() - start_time
-    send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed in {elapsed_time:.2f} seconds!")
-    return links
-
-def process_downloaded_files(downloaded_folder_path):
-    # Iterate through all files and folders in the downloaded directory
+def process_downloaded_files(downloaded_folder_path, uploader):
     for item in os.listdir(downloaded_folder_path):
         item_path = os.path.join(downloaded_folder_path, item)
 
         if os.path.isdir(item_path):
-            # Zip and upload the folder
             zip_file_path = zip_folder(item_path, magnet_link)
-            if zip_file_path:  # Only upload if zipping was successful
-                send_to_telegram(bot_id, chat_id, "Uploading the zipped folder to GoFile...")
-                upload_links = upload_file(zip_file_path)
-                # If GoFile upload fails, try BuzzHeavier
-                if not upload_links:
-                    send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
-                    buzzheavier_links = upload_files_to_buzzheavier(zip_file_path)
-                    if buzzheavier_links:
-                        combined_links = "\n".join(buzzheavier_links)
-                        send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed! Links:\n{combined_links}")
-                    else:
-                        send_to_telegram(bot_id, chat_id, "Upload failed on both platforms.")
-                else:
-                    combined_links = "\n".join(upload_links)
-                    send_to_telegram(bot_id, chat_id, f"Upload completed to GoFile! Links:\n{combined_links}")
+            if zip_file_path:
+                send_to_telegram(bot_id, chat_id, f"Uploading the zipped folder to {uploader}...")
+                if uploader == 'gofile':
+                    upload_links = upload_file_to_gofile(zip_file_path)
+                elif uploader == 'buzzheavier':
+                    upload_links = upload_file_to_buzzheavier(zip_file_path)
+                elif uploader == 'pixeldrain':
+                    upload_links = upload_file_to_pixeldrain(zip_file_path)
+                # Handle upload process based on the uploader
+                handle_upload_response(upload_links, uploader)
+
         else:
-            # If it's a file, upload it directly
             if not item.endswith(('.zip', '.7z')):
-                send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path}")
-                upload_links = upload_file(item_path)
-                if upload_links:
-                    combined_links = "\n".join(upload_links)
-                    send_to_telegram(bot_id, chat_id, f"File upload completed! Links:\n{combined_links}")
-                else:
-                    send_to_telegram(bot_id, chat_id, "GoFile upload failed. Trying BuzzHeavier...")
-                    buzzheavier_links = upload_files_to_buzzheavier(item_path)
-                    if buzzheavier_links:
-                        combined_links = "\n".join(buzzheavier_links)
-                        send_to_telegram(bot_id, chat_id, f"BuzzHeavier upload completed for file! Links:\n{combined_links}")
-                    else:
-                        send_to_telegram(bot_id, chat_id, f"Upload failed for file: {item_path} on both platforms.")
+                send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path} to {uploader}...")
+                if uploader == 'gofile':
+                    upload_links = upload_file_to_gofile(item_path)
+                elif uploader == 'buzzheavier':
+                    upload_links = upload_file_to_buzzheavier(item_path)
+                elif uploader == 'pixeldrain':
+                    upload_links = upload_file_to_pixeldrain(item_path)
+                handle_upload_response(upload_links, uploader)
+
+def handle_upload_response(upload_links, uploader):
+    if upload_links:
+        combined_links = "\n".join(upload_links)
+        send_to_telegram(bot_id, chat_id, f"Upload completed to {uploader}! Links:\n{combined_links}")
+    else:
+        send_to_telegram(bot_id, chat_id, f"Upload failed on {uploader}.")
 
 if __name__ == "__main__":
     bot_id = os.environ.get('BOT_ID')
@@ -161,5 +159,6 @@ if __name__ == "__main__":
     # Download magnet link
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Process downloaded files and folders
-    process_downloaded_files(downloaded_folder_path)
+    # Specify the uploader type: 'gofile', 'buzzheavier', or 'pixeldrain'
+    uploader = 'pixeldrain'  # Change this to your desired uploader
+    process_downloaded_files(downloaded_folder_path, uploader)
