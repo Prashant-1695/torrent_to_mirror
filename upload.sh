@@ -47,24 +47,6 @@ upload_file_to_pixeldrain() {
 
     # Perform the upload to Pixeldrain using the API key
     response=$(curl -T "${file}" -u ":${token}" "https://pixeldrain.com/api/file")
-
-    # Check if the response is valid JSON
-    if echo "$response" | jq . >/dev/null 2>&1; then
-        # Extract the URL from the response
-        local download_link=$(echo "$response" | jq -r '.id')
-        
-        if [ "$download_link" != "null" ]; then
-            echo "https://pixeldrain.com/u/$download_link"  # Construct the download link
-        else
-            echo "Error: Failed to retrieve the download link from Pixeldrain."
-            echo "Response: $response"
-            exit 1
-        fi
-    else
-        echo "Error: Invalid response from Pixeldrain."
-        echo "Response: $response"
-        exit 1
-    fi
 }
 
 case $uploader in
