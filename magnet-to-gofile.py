@@ -65,64 +65,35 @@ def zip_folder(folder_path, magnet_link):
     send_to_telegram(bot_id, chat_id, f"Zipping completed in {elapsed_time:.2f} seconds!")
     return zip_file_path
 
+def upload_file(file_path, uploader):
+    if uploader == 'gofile':
+        return upload_file_to_gofile(file_path)
+    elif uploader == 'buzzheavier':
+        return upload_file_to_buzzheavier(file_path)
+    elif uploader == 'pixeldrain':
+        return upload_file_to_pixeldrain(file_path)
+
 def upload_file_to_gofile(file_path):
     url = "https://store1.gofile.io/uploadFile"
-    return upload_file(file_path, url, 'gofile')
+    return upload_file(file_path, url)
 
 def upload_file_to_buzzheavier(file_path):
     url = "https://buzzheavier.com/upload"  # Replace with the actual upload URL
-    return upload_file(file_path, url, 'buzzheavier')
+    return upload_file(file_path, url)
 
 def upload_file_to_pixeldrain(file_path):
     url = "https://pixeldrain.com/api/file"
     
-    # Use a context manager to ensure the file is properly closed after uploading
-    with open(file_path, 'rb') as file:
-        try:
-            # Set a timeout for the request (e.g., 10 seconds)
-            response = requests.post(url, files={'file': file}, timeout=10)
-            links = []
-
-            if response.status_code == 200:
-                response_json = response.json()
-                links.append(response_json['id'])  # Link to the uploaded file
-            else:
-                print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
-
-        except requests.exceptions.Timeout:
-            print(f'Timeout occurred while uploading {file_path} to Pixeldrain.')
-            send_to_telegram(bot_id, chat_id, f'Timeout occurred while uploading {file_path} to Pixeldrain.')
-
-        except requests.exceptions.SSLError as ssl_error:
-            print(f'SSL Error occurred while uploading {file_path} to Pixeldrain: {ssl_error}')
-            send_to_telegram(bot_id, chat_id, f'SSL Error occurred while uploading {file_path} to Pixeldrain: {ssl_error}')
-
-        except Exception as e:
-            print(f'An unexpected error occurred while uploading {file_path} to Pixeldrain: {e}')
-            send_to_telegram(bot_id, chat_id, f'An unexpected error occurred while uploading {file_path} to Pixeldrain: {e}')
-
-    return links
-
-def upload_file(file_path, url, platform):
-    links = []
-    start_time = time.time()
     with open(file_path, 'rb') as file:
         response = requests.post(url, files={'file': file})
+        links = []
+
         if response.status_code == 200:
             response_json = response.json()
-            if response_json['status'] == 'ok':
-                if platform == 'gofile':
-                    links.append(response_json['data']['downloadPage'])
-                elif platform == 'buzzheavier':
-                    links.append(response_json['downloadLink'])  # Update based on actual response structure
-                print(f'Upload successful to {platform}: {links}')
-            else:
-                print(f'Upload failed for {file_path} to {platform}: {response_json["message"]}')
+            links.append(response_json['id'])  # Link to the uploaded file
         else:
-            print(f'Error uploading {file_path} to {platform}: {response.status_code} - {response.text}')
+            print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
 
-    elapsed_time = time.time() - start_time
-    send_to_telegram(bot_id, chat_id, f"{platform.capitalize()} upload completed in {elapsed_time:.2f} seconds!")
     return links
 
 def process_downloaded_files(downloaded_folder_path, uploader):
@@ -133,24 +104,13 @@ def process_downloaded_files(downloaded_folder_path, uploader):
             zip_file_path = zip_folder(item_path, magnet_link)
             if zip_file_path:
                 send_to_telegram(bot_id, chat_id, f"Uploading the zipped folder to {uploader}...")
-                if uploader == 'gofile':
-                    upload_links = upload_file_to_gofile(zip_file_path)
-                elif uploader == 'buzzheavier':
-                    upload_links = upload_file_to_buzzheavier(zip_file_path)
-                elif uploader == 'pixeldrain':
-                    upload_links = upload_file_to_pixeldrain(zip_file_path)
-                # Handle upload process based on the uploader
+                upload_links = upload_file(zip_file_path, uploader)
                 handle_upload_response(upload_links, uploader)
 
         else:
             if not item.endswith(('.zip', '.7z')):
                 send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path} to {uploader}...")
-                if uploader == 'gofile':
-                    upload_links = upload_file_to_gofile(item_path)
-                elif uploader == 'buzzheavier':
-                    upload_links = upload_file_to_buzzheavier(item_path)
-                elif uploader == 'pixeldrain':
-                    upload_links = upload_file_to_pixeldrain(item_path)
+                upload_links = upload_file(item_path, uploader)
                 handle_upload_response(upload_links, uploader)
 
 def handle_upload_response(upload_links, uploader):
@@ -161,6 +121,7 @@ def handle_upload_response(upload_links, uploader):
         send_to_telegram(bot_id, chat_id, f"Upload failed on {uploader}.")
 
 if __name__ == "__main__":
+    # Load environment variables for bot_id and chat_id
     bot_id = os.environ.get('BOT_ID')
     chat_id = os.environ.get('CHAT_ID')
 
@@ -175,6 +136,6 @@ if __name__ == "__main__":
     # Download magnet link
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Specify the uploader type: 'gofile', 'buzzheavier', or 'pixeldrain'
-    uploader = 'pixeldrain'  # Change this to your desired uploader
+    # Default uploader is 'gofile'
+    uploader = 'pixeldrain'  # Change this to your desired uploader (e.g., 'gofile', 'buzzheavier')
     process_downloaded_files(downloaded_folder_path, uploader)
