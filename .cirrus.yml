@@ -5,6 +5,7 @@ env: # Environment variables to pass to all tasks
 # store our secrets here
     BOT_ID: "ENCRYPTED[!a20e4f0344f49beab507135209956fae7381be15d2066fcd2a241caf2e0ae5da914d777c01cd209608791ba22bb093f5!]"
     CHAT_ID: "ENCRYPTED[!7f41642ba1392c40fdf0b2827bbdc8d8e84d229ecef41ea21cf3b3f59c3fc3eecb2c34897341f332e5ddec514f3ece23!]"
+    PIXELDRAIN_API_KEY: "ENCRYPTED[!2d9367b0e4b814731fc9eb9902ae7ca074834f3cbccb8acc64dbf2235f46d3d5e25bf89f5327646c8c8c61fc2d14c65f!]"
 
 # store information about git here
     gmail: prashant33968@gmail.com
