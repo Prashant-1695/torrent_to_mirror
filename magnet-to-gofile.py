@@ -66,49 +66,6 @@ def zip_folder(folder_path, magnet_link):
     send_to_telegram(bot_id, chat_id, f"Zipping completed in {elapsed_time:.2f} seconds!")
     return zip_file_path
 
-def upload_file(file_path, uploader, api_key):
-    if uploader == 'gofile':
-        return upload_file_to_gofile(file_path)
-    elif uploader == 'buzzheavier':
-        return upload_file_to_buzzheavier(file_path)
-    elif uploader == 'pixeldrain':
-        return upload_file_to_pixeldrain(file_path, api_key)
-
-def upload_file_to_gofile(file_path):
-    url = "https://store1.gofile.io/uploadFile"
-    return upload_file(file_path, url, 'gofile')
-
-def upload_file_to_buzzheavier(file_path):
-    url = "https://buzzheavier.com/upload"  # Replace with the actual upload URL
-    return upload_file(file_path, url, 'buzzheavier')
-
-def upload_file_to_pixeldrain(file_path, api_key):
-    url = "https://pixeldrain.com/api/file"
-    headers = {'Authorization': f'Bearer {api_key}'}
-
-    # Prepare the curl command
-    curl_command = [
-        'curl', '-X', 'POST', url,
-        '-H', f'Authorization: Bearer {api_key}',
-        '-F', f'file=@{file_path}'
-    ]
-
-    # Execute the curl command
-    try:
-        result = subprocess.run(curl_command, capture_output=True, text=True)
-        response_json = json.loads(result.stdout)
-
-        links = []
-        if result.returncode == 0 and 'id' in response_json:
-            links.append(response_json['id'])  # Link to the uploaded file
-        else:
-            print(f'Upload failed for {file_path} to Pixeldrain: {result.returncode} - {result.stderr}')
-
-    except Exception as e:
-        print(f'An error occurred: {e}')
-
-    return links
-
 def process_downloaded_files(downloaded_folder_path, uploader, api_key):
     for item in os.listdir(downloaded_folder_path):
         item_path = os.path.join(downloaded_folder_path, item)
@@ -125,6 +82,16 @@ def process_downloaded_files(downloaded_folder_path, uploader, api_key):
                 send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path} to {uploader}...")
                 upload_links = upload_file(item_path, uploader, api_key)
                 handle_upload_response(upload_links, uploader)
+
+def upload_to_external_service(file_path, uploader, api_key):
+    # Call the upload.sh script with the necessary parameters
+    result = subprocess.run(['bash', 'upload.sh', uploader, file_path, api_key], capture_output=True, text=True)
+
+    if result.returncode == 0:
+        return result.stdout.splitlines()  # Split the output into lines (assumed to be links)
+    else:
+        print(f'Upload failed: {result.stderr}')
+        return []
 
 def handle_upload_response(upload_links, uploader):
     if upload_links:
