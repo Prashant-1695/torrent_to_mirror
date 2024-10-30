@@ -138,5 +138,5 @@ if __name__ == "__main__":
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
     # Default uploader is 'pixeldrain'
-    uploader = 'gofile'  # Change this to your desired uploader (e.g., 'pixeldrain', 'buzzheavier')
+    uploader = 'buzzheavier'  # Change this to your desired uploader (e.g., 'pixeldrain', 'buzzheavier')
     process_downloaded_files(downloaded_folder_path, uploader, pixeldrain_api_key)
