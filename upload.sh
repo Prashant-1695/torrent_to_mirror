@@ -26,7 +26,7 @@ upload_file_to_buzzheavier() {
     local response
 
     # Using curl to upload the file to BuzzHeavier
-    response=$(curl -# -T "${file}" "https://w.buzzheavier.com/t/" | cat)
+    response=$(curl -# -o - -T "${file}" "https://w.buzzheavier.com/t/" | cat)
 
     # Extracting the URL from the response
     local download_link=$(echo "$response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
