@@ -41,6 +41,7 @@ RUN \
 RUN sudo apt-get install -y \ 
     python3 \
     p7zip-full \
+    curl \
     python3-libtorrent \
     python3-pip && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3 1

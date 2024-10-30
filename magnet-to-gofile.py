@@ -3,6 +3,7 @@ import time
 import requests
 import libtorrent as lt
 import subprocess
+import json  # Importing json to parse curl output
 
 def send_to_telegram(bot_id, chat_id, message):
     url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
@@ -85,15 +86,26 @@ def upload_file_to_pixeldrain(file_path, api_key):
     url = "https://pixeldrain.com/api/file"
     headers = {'Authorization': f'Bearer {api_key}'}
 
-    with open(file_path, 'rb') as file:
-        response = requests.post(url, files={'file': file}, headers=headers)
-        links = []
+    # Prepare the curl command
+    curl_command = [
+        'curl', '-X', 'POST', url,
+        '-H', f'Authorization: Bearer {api_key}',
+        '-F', f'file=@{file_path}'
+    ]
 
-        if response.status_code == 200:
-            response_json = response.json()
+    # Execute the curl command
+    try:
+        result = subprocess.run(curl_command, capture_output=True, text=True)
+        response_json = json.loads(result.stdout)
+
+        links = []
+        if result.returncode == 0 and 'id' in response_json:
             links.append(response_json['id'])  # Link to the uploaded file
         else:
-            print(f'Upload failed for {file_path} to Pixeldrain: {response.status_code} - {response.text}')
+            print(f'Upload failed for {file_path} to Pixeldrain: {result.returncode} - {result.stderr}')
+
+    except Exception as e:
+        print(f'An error occurred: {e}')
 
     return links
 
