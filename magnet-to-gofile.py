@@ -149,7 +149,7 @@ if __name__ == "__main__":
     chat_id = os.environ.get('CHAT_ID')
 
     # Example magnet link (Replace with actual magnet link)
-    magnet_link = "magnet:?xt=urn:btih:V5XKF4FCGHEU2IJ6Y57A4IBGXC2SOUEI&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&dn=%5BASW%5D%20Amagami-san%20Chi%20no%20Enmusubi%20-%2005%20%5B1080p%20HEVC%20x265%2010Bit%5D%5BAAC%5D"
+    magnet_link = "magnet:?xt=urn:btih:FCPUZRUUMFPT6LOTFBITQTUGDWB6R47W&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce000&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.cyberia.is%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&dn=%5BBreeze%5D%20Kami%20no%20Tou%20%7C%20Tower%20of%20God%20-%20S02E17%20%5B1080p%20AV1%5D%5Bmultisub%5D%20%28weekly%29"
     
     # Set download path
     download_path = "./downloads/"
