@@ -3,7 +3,6 @@ import time
 import requests
 import libtorrent as lt
 import subprocess
-import json  # Importing json to parse curl output
 import base64
 
 def send_to_telegram(bot_id, chat_id, message):
@@ -75,13 +74,13 @@ def process_downloaded_files(downloaded_folder_path, uploader, api_key):
             zip_file_path = zip_folder(item_path, magnet_link)
             if zip_file_path:
                 send_to_telegram(bot_id, chat_id, f"Uploading the zipped folder to {uploader}...")
-                upload_links = upload_file(zip_file_path, uploader, api_key)
+                upload_links = upload_to_external_service(zip_file_path, uploader, api_key)
                 handle_upload_response(upload_links, uploader)
 
         else:
             if not item.endswith(('.zip', '.7z')):
                 send_to_telegram(bot_id, chat_id, f"Uploading file: {item_path} to {uploader}...")
-                upload_links = upload_file(item_path, uploader, api_key)
+                upload_links = upload_to_external_service(item_path, uploader, api_key)
                 handle_upload_response(upload_links, uploader)
 
 def upload_to_external_service(file_path, uploader, api_key):
@@ -137,6 +136,6 @@ if __name__ == "__main__":
     # Download magnet link
     downloaded_folder_path = download_magnet(magnet_link, download_path)
 
-    # Default uploader is 'gofile'
+    # Default uploader is 'pixeldrain'
     uploader = 'pixeldrain'  # Change this to your desired uploader (e.g., 'pixeldrain', 'buzzheavier')
     process_downloaded_files(downloaded_folder_path, uploader, pixeldrain_api_key)
