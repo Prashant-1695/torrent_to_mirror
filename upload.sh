@@ -24,7 +24,7 @@ upload_file_to_gofile() {
 upload_file_to_buzzheavier() {
     local file="$1"
     local response
-    response=$(curl -F "file=@${file}" https://buzzheavier.com/upload)
+    response=$(curl -F "file=@${file}" https://w.buzzheavier.com/t/)
     echo "$response" | grep -o '"url":"[^"]*' | cut -d'"' -f4
 }
 
