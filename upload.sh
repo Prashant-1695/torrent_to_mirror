@@ -22,22 +22,7 @@ upload_file_to_gofile() {
 }
 
 upload_file_to_buzzheavier() {
-    local file="$1"
-    local response
-
-    # Using curl to upload the file to BuzzHeavier
-    response=$(curl -# -o - -T "${file}" "https://w.buzzheavier.com/t/" | cat)
-
-    # Extracting the URL from the response
-    local download_link=$(echo "$response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
-    
-    if [ "$download_link" != "" ]; then
-        echo "$download_link"
-    else
-        echo "Error: Failed to retrieve the download link from BuzzHeavier."
-        echo "Response: $response"
-        exit 1
-    fi
+    local download_link=https://buzzheavier.com/f/$(curl -#o - -T "$1" https://w.buzzheavier.com/t/$1 | cut -d : -f 2 | cut -d } -f 1 | grep -Po '[^"]*')
 }
 
 upload_file_to_pixeldrain() {
@@ -50,6 +35,7 @@ upload_file_to_pixeldrain() {
 
     # Extract the URL from the response using jq
     local download_link=$(echo "$response" | jq -r '.id')
+
 }
 
 case $uploader in
