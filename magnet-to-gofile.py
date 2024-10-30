@@ -4,6 +4,7 @@ import requests
 import libtorrent as lt
 import subprocess
 import json  # Importing json to parse curl output
+import base64
 
 def send_to_telegram(bot_id, chat_id, message):
     url = f"https://api.telegram.org/bot{bot_id}/sendMessage"
@@ -100,14 +101,33 @@ def handle_upload_response(upload_links, uploader):
     else:
         send_to_telegram(bot_id, chat_id, f"Upload failed on {uploader}.")
 
+def get_magnet_link_from_github(repo, path, branch="main"):
+    url = f"https://api.github.com/repos/{repo}/contents/{path}?ref={branch}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        content = response.json()['content']
+        decoded_content = base64.b64decode(content).decode('utf-8')
+        return decoded_content.strip()
+    else:
+        print(f"Failed to fetch magnet link: {response.status_code} - {response.text}")
+        return None
+
 if __name__ == "__main__":
     # Load environment variables for bot_id, chat_id, and pixeldrain_api_key
     bot_id = os.environ.get('BOT_ID')
     chat_id = os.environ.get('CHAT_ID')
     pixeldrain_api_key = os.environ.get('PIXELDRAIN_API_KEY')
 
-    # Example magnet link (Replace with actual magnet link)
-    magnet_link = "magnet:?xt=urn:btih:FCPUZRUUMFPT6LOTFBITQTUGDWB6R47W&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce000&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.cyberia.is%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&dn=%5BBreeze%5D%20Kami%20no%20Tou%20%7C%20Tower%20of%20God%20-%20S02E17%20%5B1080p%20AV1%5D%5Bmultisub%5D%20%28weekly%29"
+    # Example GitHub repository and file path
+    github_repo = "username/repo"  # Replace with the actual GitHub username/repo
+    file_path = "path/to/magnet_link.txt"  # Replace with the actual path to the magnet_link.txt file
+
+    # Get the magnet link from the GitHub repository
+    magnet_link = get_magnet_link_from_github(github_repo, file_path)
+
+    if not magnet_link:
+        print("Magnet link could not be retrieved. Exiting...")
+        exit(1)
 
     # Set download path
     download_path = "./downloads/"
