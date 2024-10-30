@@ -6,6 +6,14 @@ uploader=$1
 file_path=$2
 api_key=$3
 
+# Function to check if jq is installed
+check_jq() {
+    if ! command -v jq &> /dev/null; then
+        echo "Error: jq is not installed. Please install jq to use this script."
+        exit 1
+    fi
+}
+
 upload_file_to_gofile() {
     local file="$1"
     local response
