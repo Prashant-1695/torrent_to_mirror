@@ -56,7 +56,7 @@ case $uploader in
         upload_file_to_gofile "$1"
         ;;
     buzz)
-        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:][:punct:]' | tr ' ' '_')
+        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
         mv "$1" "$sanitized_filename"
         tg "- $sanitized_filename Upload Started on BuzzHeavier!"
         check_jq
@@ -68,7 +68,7 @@ case $uploader in
         tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
         upload_file_to_gofile "$1"
         # buzz
-        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:][:punct:]' | tr ' ' '_')
+        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
         mv "$1" "$sanitized_filename"
         tg "- $sanitized_filename Upload Started on BuzzHeavier!"
         upload_file_to_buzzheavier "$sanitized_filename"
