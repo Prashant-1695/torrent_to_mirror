@@ -6,7 +6,7 @@ uploader=$1
 cd downloads
 
 tg () {
-curl -s "https://api.telegram.org/bot${BOT_ID}/sendmessage" --data "text=$1&chat_id=${CHAT_ID}"
+    curl -s "https://api.telegram.org/bot${BOT_ID}/sendmessage" --data "text=$1&chat_id=${CHAT_ID}"
 }
 
 # Function to check if jq is installed
@@ -50,48 +50,48 @@ Download Link: https://buzzheavier.com/f/$download_link"
 }
 
 upload () {
-case $uploader in
-    go)
-        tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
-        upload_file_to_gofile "$1"
-        ;;
-    buzz)
-        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
-        mv "$1" "$sanitized_filename"
-        tg "- $sanitized_filename Upload Started on BuzzHeavier!"
-        check_jq
-        upload_file_to_buzzheavier "$sanitized_filename"
-        ;;
-    *)
-        check_jq
-        # goup
-        tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
-        upload_file_to_gofile "$1"
-        # buzz
-        sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
-        mv "$1" "$sanitized_filename"
-        tg "- $sanitized_filename Upload Started on BuzzHeavier!"
-        upload_file_to_buzzheavier "$sanitized_filename"
-        ;;
-esac
+    case $uploader in
+        go)
+            tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
+            upload_file_to_gofile "$1"
+            ;;
+        buzz)
+            sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
+            mv "$1" "$sanitized_filename"
+            tg "- $sanitized_filename Upload Started on BuzzHeavier!"
+            check_jq
+            upload_file_to_buzzheavier "$sanitized_filename"
+            ;;
+        *)
+            check_jq
+            tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
+            upload_file_to_gofile "$1"
+            sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
+            mv "$1" "$sanitized_filename"
+            tg "- $sanitized_filename Upload Started on BuzzHeavier!"
+            upload_file_to_buzzheavier "$sanitized_filename"
+            ;;
+    esac
 }
 
 # Check if there are files in the downloads folder
 shopt -s nullglob  # Avoid errors if no files match
 files=(*)
 if [ ${#files[@]} -gt 0 ]; then
-    filename="${files[0]}"
-
-    # Check if the file is a zip file or a 7z file
-    if [[ "$filename" == *.zip ]]; then
-        tg "- Detected a zip file: $filename"
-    elif [[ "$filename" == *.7z ]]; then
-        tg "- Detected a 7z file: $filename"
-    else
-        tg "- Detected a non-zip/non-7z file: $filename"
-    fi
-
-    upload "${filename}"
+    # Loop through all files to check if any are zip or 7z
+    for filename in "${files[@]}"; do
+        if [[ "$filename" == *.zip ]]; then
+            tg "- Detected a zip file: $filename"
+            upload "$filename"
+            exit 0  # Exit after uploading the first zip file
+        elif [[ "$filename" == *.7z ]]; then
+            tg "- Detected a 7z file: $filename"
+            upload "$filename"
+            exit 0  # Exit after uploading the first 7z file
+        fi
+    done
+    tg "No zip or 7z or non-zip files found to upload : $filename"
+    upload "$filename"
 else
     tg "No files found to upload."
 fi
