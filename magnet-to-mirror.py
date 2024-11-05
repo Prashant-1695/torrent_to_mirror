@@ -1,5 +1,6 @@
 import os
 import time
+import base64
 import re
 import requests
 import subprocess
@@ -126,6 +127,18 @@ def zip_folder(folder_path, magnet_link, bot_id, chat_id):
         send_to_telegram(bot_id, chat_id, f"Unexpected error: {str(e)}")
 
     return None
+    
+def get_magnet_link_from_github(repo, path, branch="main"):
+    """Retrieve a magnet link from a GitHub repository."""
+    url = f"https://api.github.com/repos/{repo}/contents/{path}?ref={branch}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        content = response.json()['content']
+        decoded_content = base64.b64decode(content).decode('utf-8').strip()
+        return decoded_content
+    else:
+        print(f"Failed to fetch magnet link: {response.status_code} - {response.text}")
+        return None   
        
 if __name__ == "__main__":
     # Load environment variables for bot_id and chat_id
@@ -136,8 +149,14 @@ if __name__ == "__main__":
         print("Error: Both BOT_ID and CHAT_ID environment variables must be set.")
         exit(1)
 
-    # Directly set the magnet link here
-    magnet_link = "magnet:?xt=urn:btih:IAVEF7757OUOJGKH7MSGUS7O2J3EVQKO&tr=http%3A%2F%2Fanidex.moe%3A6969%2Fannounce&dn=%5BCleo%5D%20Beck%3A%20Mongolian%20Chop%20Squad%20%5BDual%20Audio%2010bit%20BD1080p%5D%5BHEVC-x265%5D"
+    # Configuration for GitHub repository and the file path
+    github_repo = "Prashant-1695/magnet_url"  # Update with actual GitHub repo
+    file_path = "magnet_link.txt"  # Update with actual file path
+    # Get the magnet link from the specified GitHub repository
+    magnet_link = get_magnet_link_from_github(github_repo, file_path)
+    if not magnet_link:
+        print("Magnet link could not be retrieved. Exiting...")
+        exit(1)
 
     # Set the download directory
     download_path = "./downloads/"
