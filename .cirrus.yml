@@ -21,4 +21,4 @@ task:
     py_script:
       - python3 *.py
     upl_script:
-      - bash upl* all # go/buzz/all
+      - bash upl* go # go/buzz/all
