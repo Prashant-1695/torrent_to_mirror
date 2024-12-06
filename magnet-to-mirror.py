@@ -46,9 +46,26 @@ def download_torrent(magnet_link, download_path, bot_id, chat_id):
     ses = lt.session()
     ses.listen_on(6881, 6891)
 
+    # Optimize session settings for maximum download speed
+    settings = {
+        'active_downloads': 10,  # Number of active downloads
+        'active_seeds': 10,  # Number of active seeds
+        'active_limit': 500,  # Maximum active torrents
+        'download_rate_limit': 0,  # 0 = no limit
+        'upload_rate_limit': 0,  # 0 = no limit
+        'max_out_request_queue': 1500,  # Request queue size
+        'peer_connect_timeout': 2,  # Timeout for connecting to peers
+        'request_timeout': 10,  # Timeout for requests
+        'seed_time_limit': 0,  # Unlimited seeding time
+        'dht_announce_interval': 30,  # DHT announce interval in seconds
+    }
+    ses.apply_settings(settings)
+
     params = {
         'save_path': download_path,
         'storage_mode': lt.storage_mode_t.storage_mode_sparse,
+        'download_limit': 0,  # 0 = no limit
+        'upload_limit': 0,  # 0 = no limit
     }
 
     handle = lt.add_magnet_uri(ses, magnet_link, params)
@@ -58,14 +75,15 @@ def download_torrent(magnet_link, download_path, bot_id, chat_id):
     print("Downloading...")
     start_time = time.time()
 
-    while handle.status().state != lt.torrent_status.seeding:
+    while not handle.is_seed():
         status = handle.status()
         download_rate_mb_s = status.download_rate / 1_048_576  # Convert to MB/s
         upload_rate_mb_s = status.upload_rate / 1_048_576      # Convert to MB/s
 
         print(f'Downloaded: {status.progress * 100:.2f}% - '
               f'Download rate: {download_rate_mb_s:.2f} MB/s - '
-              f'Upload rate: {upload_rate_mb_s:.2f} MB/s')
+              f'Upload rate: {upload_rate_mb_s:.2f} MB/s - '
+              f'Peers: {status.num_peers}')
 
         time.sleep(1)
 
