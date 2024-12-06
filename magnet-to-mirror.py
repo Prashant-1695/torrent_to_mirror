@@ -48,26 +48,25 @@ def download_torrent(magnet_link, download_path, bot_id, chat_id):
 
     # Optimize session settings for maximum download speed
     settings = {
-        'active_downloads': 10,  # Number of active downloads
-        'active_seeds': 10,  # Number of active seeds
-        'active_limit': 500,  # Maximum active torrents
-        'download_rate_limit': 0,  # 0 = no limit
-        'upload_rate_limit': 0,  # 0 = no limit
-        'max_out_request_queue': 1500,  # Request queue size
-        'peer_connect_timeout': 2,  # Timeout for connecting to peers
-        'request_timeout': 10,  # Timeout for requests
-        'seed_time_limit': 0,  # Unlimited seeding time
-        'dht_announce_interval': 30,  # DHT announce interval in seconds
+        'active_downloads': 10,
+        'active_seeds': 10,
+        'active_limit': 500,
+        'download_rate_limit': 0,  # No limit
+        'upload_rate_limit': 0,  # No limit
+        'max_out_request_queue': 1500,
+        'peer_connect_timeout': 2,
+        'request_timeout': 10,
+        'seed_time_limit': 0,
+        'dht_announce_interval': 30,
     }
     ses.apply_settings(settings)
 
     params = {
         'save_path': download_path,
         'storage_mode': lt.storage_mode_t.storage_mode_sparse,
-        'download_limit': 0,  # 0 = no limit
-        'upload_limit': 0,  # 0 = no limit
     }
 
+    # Add the magnet URI
     handle = lt.add_magnet_uri(ses, magnet_link, params)
 
     send_to_telegram(bot_id, chat_id, f"Downloading: {torrent_name}")
