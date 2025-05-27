@@ -23,3 +23,6 @@ task:
       - python3 *.py
     upl_script:
       - bash upl*
+    always:
+      logs_artifacts:
+        path: "/tmp/upload_log_*.log"      
