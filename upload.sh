@@ -37,35 +37,35 @@ log_success() { log "SUCCESS" "$*"; }
 # Enhanced configuration loader with better error handling
 load_cirrus_config() {
     log_info "Loading configuration..."
-
+    
     # Check if running in CI environment
     if [[ "${CI:-false}" == "true" || "${CIRRUS_CI:-false}" == "true" ]]; then
         log_info "Running in CI environment"
         # In CI, variables should already be exported
         return 0
     fi
-
+    
     if [[ -f /tmp/ci/.cirrus.yml ]]; then
         log_info "Loading configuration from /tmp/ci/.cirrus.yml..."
-
+        
         # Extract variables with better parsing
         PIXELDRAIN_API_KEY=$(yq eval '.env.PIXELDRAIN_API_KEY // ""' /tmp/ci/.cirrus.yml 2>/dev/null || \
                               grep -A 20 "env:" /tmp/ci/.cirrus.yml | grep "PIXELDRAIN_API_KEY:" | \
                               sed 's/.*PIXELDRAIN_API_KEY: *//;s/ENCRYPTED\[//;s/\]$//' | tr -d '"' || echo "")
-
+        
         BOT_ID=$(yq eval '.env.BOT_ID // ""' /tmp/ci/.cirrus.yml 2>/dev/null || \
                  grep -A 20 "env:" /tmp/ci/.cirrus.yml | grep "BOT_ID:" | \
                  sed 's/.*BOT_ID: *//;s/ENCRYPTED\[//;s/\]$//' | tr -d '"' || echo "")
-
+        
         CHAT_ID=$(yq eval '.env.CHAT_ID // ""' /tmp/ci/.cirrus.yml 2>/dev/null || \
                   grep -A 20 "env:" /tmp/ci/.cirrus.yml | grep "CHAT_ID:" | \
                   sed 's/.*CHAT_ID: *//;s/ENCRYPTED\[//;s/\]$//' | tr -d '"' || echo "")
-
+        
         # Export variables
         [[ -n "$PIXELDRAIN_API_KEY" ]] && export PIXELDRAIN_API_KEY
         [[ -n "$BOT_ID" ]] && export BOT_ID
         [[ -n "$CHAT_ID" ]] && export CHAT_ID
-
+        
     elif [[ -f /tmp/ci/.env ]]; then
         log_warn "/tmp/ci/.cirrus.yml not found, using /tmp/ci/.env as fallback..."
         set -a  # automatically export all variables
@@ -80,16 +80,16 @@ load_cirrus_config() {
 # Enhanced validation with detailed error messages
 validate_config() {
     log_info "Validating configuration..."
-
+    
     local errors=0
-
+    
     if [[ -z "${PIXELDRAIN_API_KEY:-}" ]]; then
         log_error "PIXELDRAIN_API_KEY not found or empty"
         ((errors++))
     else
         log_info "PixelDrain API key: ✓"
     fi
-
+    
     if [[ -z "${BOT_ID:-}" ]] || [[ -z "${CHAT_ID:-}" ]]; then
         log_warn "Telegram notifications disabled - missing BOT_ID or CHAT_ID"
         TELEGRAM_ENABLED=false
@@ -97,14 +97,14 @@ validate_config() {
         TELEGRAM_ENABLED=true
         log_info "Telegram notifications: ✓"
     fi
-
+    
     # Test API connectivity
     if ! curl -s --connect-timeout 10 "$API_URL" > /dev/null; then
         log_warn "Cannot reach PixelDrain API - uploads may fail"
     else
         log_info "PixelDrain API connectivity: ✓"
     fi
-
+    
     return $errors
 }
 
@@ -113,9 +113,9 @@ send_telegram() {
     local message="$1"
     local max_retries=3
     local retry_count=0
-
+    
     [[ "$TELEGRAM_ENABLED" != "true" ]] && return 0
-
+    
     while [[ $retry_count -lt $max_retries ]]; do
         if curl -s --connect-timeout 10 --max-time 30 -X POST "$TELEGRAM_API_URL" \
             -d chat_id="$CHAT_ID" \
@@ -123,12 +123,12 @@ send_telegram() {
             -d parse_mode="Markdown" > /dev/null 2>&1; then
             return 0
         fi
-
+        
         ((retry_count++))
         log_warn "Telegram notification failed (attempt $retry_count/$max_retries)"
         [[ $retry_count -lt $max_retries ]] && sleep 2
     done
-
+    
     log_error "Failed to send Telegram notification after $max_retries attempts"
     return 1
 }
@@ -138,96 +138,141 @@ upload_file() {
     local file="$1"
     local filename=$(basename "$file")
     local filesize=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "unknown")
-
+    
     log_info "Uploading: $filename (${filesize} bytes)"
-
+    
     # Check file exists and is readable
     if [[ ! -f "$file" ]] || [[ ! -r "$file" ]]; then
         log_error "File not found or not readable: $file"
         ((FAILED_COUNT++))
         return 1
     fi
-
+    
     # Upload with timeout and retry logic
     local max_retries=2
     local retry_count=0
     local response
-
+    
     while [[ $retry_count -le $max_retries ]]; do
         response=$(curl --silent --show-error --connect-timeout 30 --max-time 1800 \
                        -u ":$PIXELDRAIN_API_KEY" -F "file=@$file" "$API_URL" 2>&1)
-
+        
         if [[ $? -eq 0 ]] && echo "$response" | grep -q '"success":true'; then
             file_id=$(echo "$response" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
             download_url="https://pixeldrain.com/u/$file_id"
-
+            
             log_success "Upload successful: $filename"
             echo -e "${GREEN}✅ Success!${NC}\n   URL: $download_url"
-
+            
             send_telegram "✅ *Upload Success*
 📁 File: \`$filename\`
 📊 Size: \`$filesize bytes\`
 🔗 URL: [$download_url]($download_url)"
-
+            
             ((UPLOAD_COUNT++))
             return 0
         fi
-
+        
         ((retry_count++))
         if [[ $retry_count -le $max_retries ]]; then
             log_warn "Upload failed for $filename (attempt $retry_count/$((max_retries + 1)))"
             sleep 5
         fi
     done
-
+    
     # Extract error message
     local error_msg="Unknown error"
     if [[ -n "$response" ]]; then
         error_msg=$(echo "$response" | grep -o '"value":"[^"]*"' | cut -d'"' -f4 || echo "$response")
     fi
-
+    
     log_error "Upload failed for $filename: $error_msg"
     echo -e "${RED}❌ Failed!${NC}\n   Error: $error_msg"
-
+    
     send_telegram "❌ *Upload Failed*
 📁 File: \`$filename\`
 ⚠️ Error: \`$error_msg\`"
-
+    
     ((FAILED_COUNT++))
     return 1
 }
 
-# Enhanced directory processing with better file discovery
+# Enhanced directory processing with better file discovery and debugging
 process_directory() {
     local dir="$1"
     log_info "Scanning directory: $dir"
-
+    
     if [[ ! -d "$dir" ]]; then
         log_error "Directory not found: $dir"
         return 1
     fi
-
+    
+    # First, let's see what's actually in the directory
+    log_info "Directory contents:"
+    ls -la "$dir" | while read -r line; do
+        log_info "  $line"
+    done
+    
+    # Check for subdirectories
+    local subdirs=$(find "$dir" -type d -print | head -10)
+    log_info "Found subdirectories:"
+    echo "$subdirs" | while read -r subdir; do
+        [[ -n "$subdir" ]] && log_info "  $subdir"
+    done
+    
     # Video extensions
     local video_extensions=("mp4" "mkv" "avi" "mov" "flv" "wmv" "webm" "m4v" "3gp" "ogv")
-
-    # Build find command
-    local find_cmd="find \"$dir\" -type f \\("
-    for i in "${!video_extensions[@]}"; do
-        [[ $i -gt 0 ]] && find_cmd+=" -o"
-        find_cmd+=" -iname \"*.${video_extensions[$i]}\""
-    done
-    find_cmd+=" \\) -print0"
-
+    
+    # Use a more reliable approach - search for each extension separately
     local file_count=0
-    while IFS= read -r -d '' file; do
-        ((file_count++))
-        upload_file "$file"
-
-        # Add small delay to avoid overwhelming the server
-        sleep 1
-    done < <(eval "$find_cmd")
-
-    log_info "Found $file_count video files in $dir"
+    local total_files=0
+    
+    # First pass: count all files to show what we're working with
+    for ext in "${video_extensions[@]}"; do
+        local count=$(find "$dir" -type f -iname "*.${ext}" 2>/dev/null | wc -l)
+        if [[ $count -gt 0 ]]; then
+            log_info "Found $count .$ext files"
+            ((total_files += count))
+        fi
+    done
+    
+    if [[ $total_files -eq 0 ]]; then
+        # Let's see what files ARE there
+        log_warn "No video files found with standard extensions. Checking all files:"
+        find "$dir" -type f -print | head -20 | while read -r file; do
+            log_info "  Found file: $(basename "$file")"
+        done
+        
+        # Also check with case-sensitive search
+        log_info "Trying case-sensitive search for common extensions:"
+        for ext in mp4 MP4 mkv MKV avi AVI; do
+            local files=$(find "$dir" -type f -name "*.${ext}" 2>/dev/null)
+            if [[ -n "$files" ]]; then
+                log_info "Found .${ext} files (case-sensitive):"
+                echo "$files" | while read -r file; do
+                    log_info "  $file"
+                done
+            fi
+        done
+    else
+        log_info "Total video files found: $total_files"
+    fi
+    
+    # Second pass: actually process the files
+    for ext in "${video_extensions[@]}"; do
+        while IFS= read -r -d '' file; do
+            if [[ -n "$file" ]]; then
+                ((file_count++))
+                log_info "Processing file $file_count/$total_files: $(basename "$file")"
+                upload_file "$file"
+                
+                # Add small delay to avoid overwhelming the server
+                sleep 1
+            fi
+        done < <(find "$dir" -type f -iname "*.${ext}" -print0 2>/dev/null)
+    done
+    
+    log_info "Processed $file_count video files in $dir"
     return 0
 }
 
@@ -235,21 +280,21 @@ process_directory() {
 cleanup() {
     local exit_code=$?
     log_info "Cleaning up..."
-
+    
     # Send final report
     local duration=$(($(date +%s) - SCRIPT_START_TIME))
     local summary="🏁 *Upload Script Completed*
 ⏱️ Duration: ${duration}s
 📊 Uploaded: $UPLOAD_COUNT files
 ❌ Failed: $FAILED_COUNT files"
-
+    
     if [[ $UPLOAD_COUNT -eq 0 && $FAILED_COUNT -eq 0 ]]; then
         summary="ℹ️ *No video files found*"
     fi
-
+    
     send_telegram "$summary"
     log_info "Script completed. Uploaded: $UPLOAD_COUNT, Failed: $FAILED_COUNT, Duration: ${duration}s"
-
+    
     # Archive log file in CI environment
     if [[ "${CI:-false}" == "true" ]]; then
         # Copy log to a location that persists after task completion
@@ -258,7 +303,7 @@ cleanup() {
         echo "::set-output name=failed_count::$FAILED_COUNT"
         echo "::set-output name=log_file::$LOG_FILE"
     fi
-
+    
     exit $exit_code
 }
 
@@ -269,47 +314,55 @@ trap cleanup EXIT INT TERM
 main() {
     echo -e "${BLUE}🚀 Starting Upload Script${NC}"
     log_info "Upload script started"
-
+    
     # Load and validate configuration
     if ! load_cirrus_config; then
         log_error "Configuration loading failed"
         exit 1
     fi
-
+    
     if ! validate_config; then
         log_error "Configuration validation failed"
         exit 1
     fi
-
+    
     # Send start notification
     send_telegram "🚀 *Upload Script Started*
 🖥️ Environment: ${CI:+CI}${CIRRUS_CI:+Cirrus CI}
 📂 Working Directory: \`$(pwd)\`"
-
+    
     # Determine target directory (prioritize /tmp/ci structure)
     local target_dirs=()
-
+    
     # Check for Downloads in CI working directory first
     if [[ -d "/tmp/ci/Downloads" ]]; then
         target_dirs+=("/tmp/ci/Downloads")
+        log_info "Found Downloads directory: /tmp/ci/Downloads"
     elif [[ -d "Downloads" ]]; then
         target_dirs+=("Downloads")
+        log_info "Found Downloads directory: Downloads"
     fi
-
+    
     # Add CI working directory or current directory
     if [[ ${#target_dirs[@]} -eq 0 ]] || [[ "${SCAN_CURRENT_DIR:-false}" == "true" ]]; then
         if [[ -d "/tmp/ci" ]]; then
             target_dirs+=("/tmp/ci")
+            log_info "Added CI working directory: /tmp/ci"
         else
             target_dirs+=(".")
+            log_info "Added current directory: ."
         fi
     fi
-
+    
+    log_info "Target directories to scan: ${target_dirs[*]}"
+    
     # Process each directory
     for dir in "${target_dirs[@]}"; do
+        log_info "Starting to process directory: $dir"
         process_directory "$dir"
+        log_info "Finished processing directory: $dir"
     done
-
+    
     log_info "All directories processed"
 }
 
