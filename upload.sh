@@ -1,97 +1,71 @@
 #!/bin/bash
 
-# Usage: ./upload.sh <uploader> <file_path> <api_key>
+# Set strict error handling
+set -euo pipefail
+IFS=$'\n\t'
 
-uploader=$1
-cd downloads
-
-tg () {
-    curl -s "https://api.telegram.org/bot${BOT_ID}/sendmessage" --data "text=$1&chat_id=${CHAT_ID}"
-}
-
-# Function to check if jq is installed
-check_jq() {
-    if ! command -v jq &> /dev/null; then
-        echo "Error: jq is not installed. Please install jq to use this script."
-        exit 1
+# Function to get file size
+get_file_size() {
+    local file="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        stat -f%z "$file"
+    else
+        stat -c%s "$file"
     fi
 }
 
-upload_file_to_gofile() {
-    SECONDS=0
+# Function to upload file to GoFile
+upload_file() {
     local file="$1"
-    response=$(curl -F "file=@${file}" https://store1.gofile.io/uploadFile)
-    golink=$(echo "$response" | grep -o '"downloadPage":"[^"]*' | cut -d'"' -f4)
-    tg "- Filename $1 Uploaded Successfully!
-File Size: $(ls -sh ${PWD}/"$1" | cut -d - -f 1 | cut -d / -f 1)
-Time Took: $(($SECONDS / 60)) minute(s) and $(($SECONDS % 60)) second(s).
-Download Link: $golink"
-}
+    local file_size
+    file_size=$(get_file_size "$file")
 
-upload_file_to_buzzheavier() {
-    SECONDS=0
-    local file="$1"
+    # Upload to GoFile
+    local response
+    response=$(curl -s -X POST \
+        -H "Content-Type: multipart/form-data" \
+        -H "Accept: application/json" \
+        -H "User-Agent: Mozilla/5.0" \
+        -H "Connection: keep-alive" \
+        -F "file=@$file" \
+        "https://upload.gofile.io/uploadFile")
 
-    # Check if file exists
-    if [ ! -f "$file" ]; then
-        tg "Error: File $file does not exist."
+    # Check if upload was successful
+    if echo "$response" | grep -q '"status":"ok"'; then
+        download_link=$(echo "$response" | grep -o '"downloadPage":"[^"]*' | cut -d'"' -f4)
+        echo "$download_link"
+        return 0
+    else
+        echo "Error: Upload failed - $response" >&2
         return 1
     fi
-
-    # Perform the upload and capture the response
-    response=$(curl -# -T "$file" https://w.buzzheavier.com/t/$1 | cut -d : -f 2 | cut -d } -f 1 | grep -Po '[^"]*')
-
-    # Check if the upload was successful
-    download_link=$(echo "$response")
-    tg "- Filename $file Uploaded Successfully!
-File Size: $(ls -sh "$file" | awk '{print $1}')
-Time Took: $(($SECONDS / 60)) minute(s) and $(($SECONDS % 60)) second(s).
-Download Link: https://buzzheavier.com/f/$download_link"
 }
 
-upload () {
-    case $uploader in
-        go)
-            tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
-            upload_file_to_gofile "$1"
-            ;;
-        buzz)
-            sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
-            mv "$1" "$sanitized_filename"
-            tg "- $sanitized_filename Upload Started on BuzzHeavier!"
-            check_jq
-            upload_file_to_buzzheavier "$sanitized_filename"
-            ;;
-        *)
-            check_jq
-            tg "- $(echo "$1" | tr -d '[:cntrl:]' | tr ' ' '_') Upload Started on GoFile!"
-            upload_file_to_gofile "$1"
-            sanitized_filename=$(echo "$1" | tr -d '[:cntrl:]' | tr '[]() ' '_')
-            mv "$1" "$sanitized_filename"
-            tg "- $sanitized_filename Upload Started on BuzzHeavier!"
-            upload_file_to_buzzheavier "$sanitized_filename"
-            ;;
-    esac
+# Main execution
+main() {
+    if [[ $# -ne 1 ]]; then
+        echo "Error: File path required" >&2
+        exit 1
+    fi
+
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo "Error: File not found: $file" >&2
+        exit 1
+    fi
+
+    # Get file size and check if it's too large (max 10GB)
+    local size
+    size=$(get_file_size "$file")
+    if (( size > 10737418240 )); then  # 10GB in bytes
+        echo "Error: File size exceeds 10GB limit" >&2
+        exit 1
+    fi
+
+    upload_file "$file"
 }
 
-# Check if there are files in the downloads folder
-shopt -s nullglob  # Avoid errors if no files match
-files=(*)
-if [ ${#files[@]} -gt 0 ]; then
-    # Loop through all files to check if any are zip or 7z
-    for filename in "${files[@]}"; do
-        if [[ "$filename" == *.zip ]]; then
-            tg "- Detected a zip file: $filename"
-            upload "$filename"
-            exit 0  # Exit after uploading the first zip file
-        elif [[ "$filename" == *.7z ]]; then
-            tg "- Detected a 7z file: $filename"
-            upload "$filename"
-            exit 0  # Exit after uploading the first 7z file
-        fi
-    done
-    tg "No zip or 7z or non-zip files found to upload : $filename"
-    upload "$filename"
-else
-    tg "No files found to upload."
+# Execute main
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi

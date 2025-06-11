@@ -49,6 +49,10 @@ RUN sudo apt-get install -y \
 
 RUN sudo pip install \
     requests \
+    python-dotenv \
+    pytz \
+    tqdm \
+    requests_toolbelt \
     python-telegram-bot \
     PyYAML
 

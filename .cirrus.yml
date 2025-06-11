@@ -20,5 +20,5 @@ task:
       greedy: true
     py_script:
       - python3 *.py
-    upl_script:
-      - bash upl* go # go/buzz/all
+ #   upl_script:
+  #    - bash upl* go # go/buzz/all
